@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: openspring
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: DATABASE_URL
+        sync: false
+      - key: CENSUS_API_KEY
+        sync: false
+      - key: USGS_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: OPEN_STATES_API_KEY
+        sync: false
+      - key: NASS_API_KEY
+        sync: false
+      - key: SNAPSHOT_SECRET
+        sync: false

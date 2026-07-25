@@ -7,7 +7,7 @@ import { ingestAllStateSnapshots } from './services/snapshot-ingest.service.js'
 
 const app = createApp()
 app.listen(env.port, () => {
-  console.log(`OpenSpring API listening on http://localhost:${env.port}`)
+  console.log(`OpenSpring listening on http://localhost:${env.port}`)
   if (env.databaseUrl) {
     purgeExpiredCache().catch((error) => {
       console.warn('Cache purge failed:', error instanceof Error ? error.message : error)

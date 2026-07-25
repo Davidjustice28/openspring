@@ -43,7 +43,8 @@ npm run dev
 | `RESEND_API_KEY` | For email | Resend API key |
 | `RESEND_FROM_EMAIL` | For email | Sender address |
 | `PORT` | No | Backend port (default 3001) |
-| `VITE_API_URL` | No | Frontend API base (default proxied `/api`) |
+| `VITE_API_URL` | Local only | Frontend API base for Vite dev (default proxied `/api`). Omit in production. |
+| `FRONTEND_DIST` | No | Path to Vite build output (default `frontend/dist`) |
 | `TRUST_PROXY` | Production | Set to `1` behind Railway/Render |
 
 ## API routes
@@ -70,15 +71,34 @@ npm run dev
 
 ## Deployment
 
+One Node service serves both the API and the built React app (same origin). Postgres stays on Neon.
+
 | Service | Suggested platform |
 |---------|-------------------|
 | Postgres | Neon |
-| Backend | Railway or Render |
-| Frontend | Vercel |
+| Web (API + frontend) | Render |
 
-Build: `npm run build`  
-Backend start: `npm run start -w backend`  
-Frontend: deploy `frontend/dist` with `VITE_API_URL` pointing to API.
+### Render (single web service)
+
+1. Push this repo and create a **Web Service** (or use Blueprint with `render.yaml`).
+2. Build command: `npm install && npm run build`
+3. Start command: `npm run start`
+4. Health check path: `/api/health`
+5. Set env vars from `.env.example` (`DATABASE_URL`, `TRUST_PROXY=1`, API keys). Do **not** set `VITE_API_URL` — the browser calls relative `/api`.
+6. After the first deploy, run migrations/seed once (Render shell or locally against the same `DATABASE_URL`):
+
+```bash
+npm run db:migrate
+npm run db:seed
+```
+
+Local production check:
+
+```bash
+npm run build
+npm run start
+# open http://localhost:3001
+```
 
 ## Development
 
