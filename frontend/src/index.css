@@ -1,0 +1,35 @@
+/* @import url() FONT IMPORTS MUST ALWAYS BE AT THE VERY TOP OF THIS FILE, ABOVE THE TAILWIND IMPORTS - DO NOT DELETE THIS COMMENT */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+@layer components {
+  .field {
+    @apply w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-[#1e293b] placeholder:text-slate-400 transition-colors focus:border-[#0284c7] focus:outline-none focus:ring-2 focus:ring-water-100;
+  }
+
+  .skeleton-shimmer {
+    background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 45%, #f8fafc 55%, #f1f5f9 100%);
+    background-size: 220% 100%;
+    animation: skeleton-shimmer 1.35s ease-in-out infinite;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -120% 0;
+  }
+}
