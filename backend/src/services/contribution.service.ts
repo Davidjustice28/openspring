@@ -4,6 +4,7 @@ import { db } from '../db/index.js'
 import { contributions } from '../db/schema.js'
 import { AppError } from '../lib/errors.js'
 import { consumeParseToken } from './parse-token.service.js'
+import { syncCachedContributionCount } from './dashboard.service.js'
 
 const recentFingerprints = new Map<string, number>()
 
@@ -66,5 +67,8 @@ export async function createContribution(input: ContributionInput, clientIp: str
     .from(contributions)
     .where(eq(contributions.stateId, input.stateId))
 
-  return { id: row!.id, stateContributionCount: Number(countRow?.count ?? 0) }
+  const stateContributionCount = Number(countRow?.count ?? 0)
+  await syncCachedContributionCount(input.stateId, stateContributionCount).catch(() => {})
+
+  return { id: row!.id, stateContributionCount }
 }

@@ -1,5 +1,6 @@
 import type {
   CityRestrictionPayload,
+  ContributionResult,
   DashboardPayload,
   GeoStateResult,
   ParseBillResponse,
@@ -44,7 +45,7 @@ export const api = {
     return res.json() as Promise<ParseBillResponse>
   },
   contribute: (body: unknown) =>
-    request('/api/contributions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+    request<ContributionResult>('/api/contributions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
   subscribe: (body: unknown) =>
     request('/api/subscriptions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
 }

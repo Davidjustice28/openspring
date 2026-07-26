@@ -240,6 +240,11 @@ export interface ParseBillResponse {
   parseToken: string
 }
 
+export interface ContributionResult {
+  id: string
+  stateContributionCount: number
+}
+
 export interface StateSummary {
   id: number
   fips: string

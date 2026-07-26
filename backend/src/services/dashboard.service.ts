@@ -31,8 +31,23 @@ import { fetchFarmAgSummary } from './farm-ag.service.js'
 import { getCached, setCache } from './cache.service.js'
 import { mapWithConcurrency } from '../lib/concurrency.js'
 
-const STATE_SUMMARIES_CACHE_KEY = 'dashboard:state-summaries'
+export const STATE_SUMMARIES_CACHE_KEY = 'dashboard:state-summaries'
 const STATE_SUMMARIES_TTL = 60 * 60
+
+export async function syncCachedContributionCount(stateId: number, contributionCount: number) {
+  const cached = await getCached<DashboardStateSummary[]>(STATE_SUMMARIES_CACHE_KEY)
+  if (!cached) return
+
+  const [dbState] = await db.select().from(states).where(eq(states.id, stateId)).limit(1)
+  if (!dbState) return
+
+  const updated = cached.map((s) =>
+    s.fips === dbState.fipsCode ? { ...s, contributionCount } : s,
+  )
+  if (updated.every((s, i) => s.contributionCount === cached[i]!.contributionCount)) return
+
+  await setCache(STATE_SUMMARIES_CACHE_KEY, 'dashboard:state-summaries', updated, STATE_SUMMARIES_TTL)
+}
 
 function formatNumber(n: number | null): string | null {
   if (n == null) return null
@@ -119,12 +134,24 @@ async function buildStateProfile(
   }
 }
 
-async function buildStateSummaries(countMap: Map<number, number>): Promise<DashboardStateSummary[]> {
-  const cached = await getCached<DashboardStateSummary[]>(STATE_SUMMARIES_CACHE_KEY)
-  if (cached) return cached
+function applyContributionCounts(
+  summaries: DashboardStateSummary[],
+  countMap: Map<number, number>,
+  dbStateByFips: Map<string, { id: number }>,
+): DashboardStateSummary[] {
+  return summaries.map((s) => {
+    const dbState = dbStateByFips.get(s.fips)
+    const contributionCount = dbState ? countMap.get(dbState.id) ?? 0 : 0
+    return contributionCount === s.contributionCount ? s : { ...s, contributionCount }
+  })
+}
 
+async function buildStateSummaries(countMap: Map<number, number>): Promise<DashboardStateSummary[]> {
   const dbStates = await db.select().from(states)
   const dbStateByFips = new Map(dbStates.map((row) => [row.fipsCode, row]))
+
+  const cached = await getCached<DashboardStateSummary[]>(STATE_SUMMARIES_CACHE_KEY)
+  if (cached) return applyContributionCounts(cached, countMap, dbStateByFips)
 
   const summaries = await mapWithConcurrency(US_STATES, 4, async (s) => {
     const water = await fetchWaterData(s.abbreviation).catch(() => ({

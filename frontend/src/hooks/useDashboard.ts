@@ -71,3 +71,28 @@ export function useInvalidateDashboard() {
   const qc = useQueryClient()
   return () => qc.invalidateQueries({ queryKey: ['dashboard'] })
 }
+
+export function useApplyContributionToDashboard() {
+  const qc = useQueryClient()
+  return (stateSlug: string, stateContributionCount: number) => {
+    qc.setQueryData<DashboardPayload>(['dashboard', 'national'], (current) => {
+      if (!current) return current
+      return {
+        ...current,
+        national: {
+          ...current.national,
+          contributionsToday: current.national.contributionsToday + 1,
+          totalContributions: current.national.totalContributions + 1,
+        },
+        states: current.states.map((state) =>
+          state.slug === stateSlug ? { ...state, contributionCount: stateContributionCount } : state,
+        ),
+      }
+    })
+
+    qc.setQueryData<StateOverviewPayload | null>(['dashboard', 'overview', stateSlug], (current) => {
+      if (!current) return current
+      return { ...current, contributionCount: stateContributionCount }
+    })
+  }
+}

@@ -13,7 +13,7 @@ import {
 } from '@openspring/shared'
 import { api } from '../lib/api'
 import { getBillReviewWarnings } from '../lib/billSanityChecks'
-import { useInvalidateDashboard, useStates } from '../hooks/useDashboard'
+import { useApplyContributionToDashboard, useInvalidateDashboard, useStates } from '../hooks/useDashboard'
 
 export interface ContributionData {
   state: string
@@ -107,6 +107,7 @@ function formatPeriod(start: string, end: string): string {
 export function ContributionForm({ onContribute, defaultStateSlug, showExplorerLink = false }: ContributionFormProps) {
   const { data: statesData } = useStates()
   const invalidateDashboard = useInvalidateDashboard()
+  const applyContributionToDashboard = useApplyContributionToDashboard()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [source, setSource] = useState<'bill' | 'manual'>('bill')
   const [stateId, setStateId] = useState('')
@@ -263,7 +264,7 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
     }
 
     try {
-      await api.contribute({
+      const result = await api.contribute({
         stateId: Number(stateId),
         city: form.city.trim(),
         zip: form.zip.trim(),
@@ -277,6 +278,10 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
         website: '',
       })
 
+      const stateSlug = selectedState?.slug
+      if (stateSlug) {
+        applyContributionToDashboard(stateSlug, result.stateContributionCount)
+      }
       invalidateDashboard()
       onContribute(contributionData)
       setSubmitted(true)
