@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
 import multer from 'multer'
-import { contributionSchema, stateParamSchema, subscriptionSchema } from '@openspring/shared'
+import { contributionSchema, MAX_BILL_FILE_BYTES, stateParamSchema, subscriptionSchema } from '@openspring/shared'
 import { getClientIp } from '../middleware/clientIp.js'
 import { parseBillBuffer } from '../services/bill-parse.service.js'
 import { createContribution } from '../services/contribution.service.js'
@@ -20,7 +20,7 @@ import { AppError } from '../lib/errors.js'
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: MAX_BILL_FILE_BYTES },
 })
 
 export const apiRouter = Router()

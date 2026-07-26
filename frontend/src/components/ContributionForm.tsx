@@ -7,6 +7,8 @@ import {
   HOME_TYPE_OPTIONS,
   HOUSEHOLD_SIZE_OPTIONS,
   LOT_SIZE_OPTIONS,
+  MAX_BILL_FILE_BYTES,
+  MAX_BILL_FILE_MB,
   OWNERSHIP_OPTIONS,
 } from '@openspring/shared'
 import { api } from '../lib/api'
@@ -151,6 +153,12 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
     if (!files?.length) return
 
     const file = files[0]
+    if (file.size > MAX_BILL_FILE_BYTES) {
+      setError(`Bill file must be ${MAX_BILL_FILE_MB} MB or smaller. Try a smaller PDF or enter values manually.`)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+
     setFileName(file.name)
     setInputSource('bill')
     setParsing(true)
@@ -307,7 +315,7 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
                       <UploadCloudIcon className="h-5 w-5 text-[#0284c7]" />
                     </span>
                     <span className="mt-3 text-sm font-semibold text-[#1e293b]">Upload a water bill</span>
-                    <span className="mt-1 text-xs text-slate-500">PDF, JPG, or PNG · verify the values we find, then we discard the file</span>
+                    <span className="mt-1 text-xs text-slate-500">PDF, JPG, or PNG · max {MAX_BILL_FILE_MB} MB · verify the values we find, then we discard the file</span>
                     <span className="mt-2 text-xs text-slate-500">
                       Upload one bill at a time. You can add more bills for other months after submitting.
                     </span>
