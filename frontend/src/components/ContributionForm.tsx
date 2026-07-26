@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeftIcon, CheckCircle2Icon, FileTextIcon, MapPinIcon, UploadCloudIcon, XIcon } from 'lucide-react'
+import { AlertTriangleIcon, ArrowLeftIcon, CheckCircle2Icon, FileTextIcon, MapPinIcon, UploadCloudIcon, XIcon } from 'lucide-react'
 import type { ParseBillResponse } from '@openspring/shared'
 import {
   BATHROOM_PREFERENCE_OPTIONS,
@@ -12,6 +12,7 @@ import {
   OWNERSHIP_OPTIONS,
 } from '@openspring/shared'
 import { api } from '../lib/api'
+import { getBillReviewWarnings } from '../lib/billSanityChecks'
 import { useInvalidateDashboard, useStates } from '../hooks/useDashboard'
 
 export interface ContributionData {
@@ -86,6 +87,23 @@ function hasParsedBillFields(parsed: ParseBillResponse['parsed']): boolean {
   return Object.values(parsed).some((value) => value != null && String(value).trim() !== '')
 }
 
+function formatGallons(value: string): string {
+  const gallons = parseWaterUsed(value)
+  if (!Number.isFinite(gallons)) return value
+  return `${gallons.toLocaleString()} gal`
+}
+
+function formatBillCost(value: string): string {
+  const amount = parseFloat(value.replace(/,/g, ''))
+  if (!Number.isFinite(amount)) return value
+  return `$${amount.toFixed(2)}`
+}
+
+function formatPeriod(start: string, end: string): string {
+  if (!start || !end) return ''
+  return `${start} to ${end}`
+}
+
 export function ContributionForm({ onContribute, defaultStateSlug, showExplorerLink = false }: ContributionFormProps) {
   const { data: statesData } = useStates()
   const invalidateDashboard = useInvalidateDashboard()
@@ -99,10 +117,26 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
   const [loading, setLoading] = useState(false)
   const [parsing, setParsing] = useState(false)
   const [parseFieldsFound, setParseFieldsFound] = useState(false)
+  const [parseConfidence, setParseConfidence] = useState<Record<string, number>>({})
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState<FormFields>(emptyForm())
 
   const states = statesData?.states ?? []
+
+  const billReviewWarnings = useMemo(() => {
+    if (source !== 'bill' || !fileName || parsing) return []
+    return getBillReviewWarnings(form, parseConfidence)
+  }, [source, fileName, parsing, form, parseConfidence])
+
+  useEffect(() => {
+    if (!confirmOpen) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setConfirmOpen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [confirmOpen])
 
   useEffect(() => {
     if (!defaultStateSlug || stateId || states.length === 0) return
@@ -130,6 +164,7 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
       setParseToken(null)
       setFileName('')
       setParseFieldsFound(false)
+      setParseConfidence({})
     }
   }
 
@@ -153,6 +188,7 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
 
     update(patch)
     setParseToken(response.parseToken)
+    setParseConfidence(response.confidence ?? {})
   }
 
   const handleFiles = async (files: FileList | null) => {
@@ -169,6 +205,7 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
     setInputSource('bill')
     setParsing(true)
     setParseFieldsFound(false)
+    setParseConfidence({})
     setError('')
 
     try {
@@ -183,6 +220,7 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
       setFileName('')
       setParseToken(null)
       setParseFieldsFound(false)
+      setParseConfidence({})
       setError(e instanceof Error ? e.message : 'Failed to parse bill')
     } finally {
       setParsing(false)
@@ -194,13 +232,26 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
     setFileName('')
     setParseToken(null)
     setParseFieldsFound(false)
+    setParseConfidence({})
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (!canSubmit || loading || parsing) return
+
+    if (source === 'bill') {
+      setConfirmOpen(true)
+      return
+    }
+
+    await submitContribution()
+  }
+
+  const submitContribution = async () => {
     if (!canSubmit) return
 
+    setConfirmOpen(false)
     setLoading(true)
     setError('')
 
@@ -235,6 +286,8 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
       setLoading(false)
     }
   }
+
+  const selectedStateName = states.find((s) => String(s.id) === stateId)?.name ?? ''
 
   return (
     <section id="contribute" className="scroll-mt-20 bg-[#f8fafc] py-16 sm:py-20" aria-labelledby="contribution-heading">
@@ -346,16 +399,34 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
                   className="sr-only"
                   onChange={(event) => void handleFiles(event.target.files)}
                 />
+                {fileName && !parsing && (
+                  <p className="rounded-lg border border-water-100 bg-water-50 px-4 py-3 text-xs text-slate-700">
+                    Auto-filled from your bill. Review at your own discretion before submitting.
+                  </p>
+                )}
               </div>
             )}
 
             <fieldset className="space-y-4">
               <legend className="text-sm font-bold text-[#1e293b]">Contribution details</legend>
-              {fileName && !parsing && parseFieldsFound && (
+              {fileName && !parsing && parseFieldsFound && billReviewWarnings.length === 0 && (
                 <p className="-mt-2 flex items-center gap-1.5 text-xs text-[#059669]">
                   <CheckCircle2Icon className="h-3.5 w-3.5" />
                   Bill values are editable. Please confirm them before contributing.
                 </p>
+              )}
+              {fileName && !parsing && parseFieldsFound && billReviewWarnings.length > 0 && (
+                <div className="-mt-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-950">
+                  <p className="flex items-center gap-1.5 font-semibold">
+                    <AlertTriangleIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    Please verify prefilled values
+                  </p>
+                  <ul className="mt-2 list-disc space-y-1 pl-5">
+                    {billReviewWarnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                </div>
               )}
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="State" htmlFor="state">
@@ -576,9 +647,124 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
               </p>
             )}
           </form>
+
+          {confirmOpen && (
+            <BillConfirmModal
+              stateName={selectedStateName}
+              city={form.city}
+              zip={form.zip}
+              waterUsed={formatGallons(form.waterUsed)}
+              billCost={formatBillCost(form.billCost)}
+              period={formatPeriod(form.periodStart, form.periodEnd)}
+              warnings={billReviewWarnings}
+              loading={loading}
+              onCancel={() => setConfirmOpen(false)}
+              onConfirm={() => void submitContribution()}
+            />
+          )}
         </div>
       </div>
     </section>
+  )
+}
+
+function BillConfirmModal({
+  stateName,
+  city,
+  zip,
+  waterUsed,
+  billCost,
+  period,
+  warnings,
+  loading,
+  onCancel,
+  onConfirm,
+}: {
+  stateName: string
+  city: string
+  zip: string
+  waterUsed: string
+  billCost: string
+  period: string
+  warnings: string[]
+  loading: boolean
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-4 sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="bill-confirm-title"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h2 id="bill-confirm-title" className="text-lg font-bold text-[#1e293b]">
+          Confirm bill values
+        </h2>
+        <p className="mt-2 text-sm text-slate-600">
+          Confirm these match your water bill (water charges only, not sewer or trash).
+        </p>
+
+        <dl className="mt-4 space-y-2 rounded-xl bg-slate-50 px-4 py-3 text-sm">
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Location</dt>
+            <dd className="text-right font-medium text-[#1e293b]">
+              {city}, {stateName} {zip}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Water used</dt>
+            <dd className="font-medium text-[#1e293b]">{waterUsed}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Water cost</dt>
+            <dd className="font-medium text-[#1e293b]">{billCost}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Billing period</dt>
+            <dd className="font-medium text-[#1e293b]">{period}</dd>
+          </div>
+        </dl>
+
+        {warnings.length > 0 && (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-950">
+            <p className="flex items-center gap-1.5 font-semibold">
+              <AlertTriangleIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              Please double-check
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {warnings.map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={loading}
+            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            Go back and edit
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            className="rounded-xl bg-[#0284c7] px-4 py-2.5 text-sm font-bold text-white hover:bg-water-600 disabled:opacity-50"
+          >
+            {loading ? 'Contributing…' : 'Confirm & contribute'}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 

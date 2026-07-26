@@ -11,7 +11,8 @@
     "db:migrate": "tsx src/scripts/migrate.ts",
     "db:seed": "tsx src/scripts/seed.ts",
     "snapshot:ingest": "tsx src/scripts/snapshot-ingest.ts",
-    "snapshot:maintenance": "tsx src/scripts/snapshot-maintenance.ts"
+    "snapshot:maintenance": "tsx src/scripts/snapshot-maintenance.ts",
+    "bill:eval": "tsx src/scripts/bill-parse-eval.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",

@@ -48,6 +48,13 @@ npm run dev
 | `FRONTEND_DIST` | No | Path to Vite build output (default `frontend/dist`) |
 | `OPENAI_API_KEY` | For bill upload | OpenAI key for bill field extraction (`gpt-4o-mini`) |
 | `OPENAI_BILL_MODEL` | No | Override bill parser model (default `gpt-4o-mini`) |
+
+Run bill parser regression tests (requires fixture files + `OPENAI_API_KEY`):
+
+```bash
+npm run bill:eval -w backend        # once per fixture
+npm run bill:eval -w backend -- 3   # 3 runs (checks consistency)
+```
 | `TRUST_PROXY` | Production | Set to `1` behind Railway/Render |
 
 ## API routes
