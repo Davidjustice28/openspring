@@ -17,7 +17,8 @@ No-signup water data transparency platform. Explore public water, climate, censu
 - [Census API key](https://api.census.gov/data/key_signup.html) (recommended)
 - [USGS API key](https://api.waterdata.usgs.gov/signup/) (recommended for environmental snapshot cards)
 - [Resend API key](https://resend.com) (optional, for email signup)
-- [OpenAI API key](https://platform.openai.com) (recommended for bill upload parsing)
+- [OpenAI API key](https://platform.openai.com) (optional fallback for bill upload parsing)
+- [Google Gemini API key](https://aistudio.google.com/apikey) (recommended for bill upload parsing)
 
 ## Setup
 
@@ -46,15 +47,18 @@ npm run dev
 | `PORT` | No | Backend port (default 3001) |
 | `VITE_API_URL` | Local only | Frontend API base for Vite dev (default proxied `/api`). Omit in production. |
 | `FRONTEND_DIST` | No | Path to Vite build output (default `frontend/dist`) |
-| `OPENAI_API_KEY` | For bill upload | OpenAI key for bill field extraction (`gpt-4o-mini`) |
-| `OPENAI_BILL_MODEL` | No | Override bill parser model (default `gpt-4o-mini`) |
+| `GEMINI_API_KEY` | For bill upload | Preferred bill parser (default `gemini-flash-lite-latest`) |
+| `GEMINI_BILL_MODEL` | No | Override Gemini bill parser model |
+| `OPENAI_API_KEY` | For bill upload | Fallback bill parser (`gpt-4o-mini`) |
+| `OPENAI_BILL_MODEL` | No | Override OpenAI bill parser model |
 
-Run bill parser regression tests (requires fixture files + `OPENAI_API_KEY`):
+Run bill parser regression tests (requires fixture files + `GEMINI_API_KEY` or `OPENAI_API_KEY`):
 
 ```bash
 npm run bill:eval -w backend        # once per fixture
 npm run bill:eval -w backend -- 3   # 3 runs (checks consistency)
 ```
+
 | `TRUST_PROXY` | Production | Set to `1` behind Railway/Render |
 
 ## API routes

@@ -23,4 +23,6 @@ export const env = {
   snapshotIngestOnStartup: process.env.SNAPSHOT_INGEST_ON_STARTUP === '1',
   openaiApiKey: requireEnv('OPENAI_API_KEY', true),
   openaiBillModel: process.env.OPENAI_BILL_MODEL ?? 'gpt-4o-mini',
+  geminiApiKey: requireEnv('GEMINI_API_KEY', true),
+  geminiBillModel: process.env.GEMINI_BILL_MODEL ?? 'gemini-flash-lite-latest',
 }

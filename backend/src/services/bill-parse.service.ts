@@ -1,7 +1,7 @@
 import pdf from 'pdf-parse/lib/pdf-parse.js'
 import { STATE_BY_ABBR, US_STATES, type ParsedBillFields } from '@openspring/shared'
 import { env } from '../config/env.js'
-import { parseBillWithOpenAI } from './bill-openai.service.js'
+import { parseBillWithVision } from './bill-vision.service.js'
 
 function extractAmount(text: string, patterns: RegExp[]): string | undefined {
   for (const pattern of patterns) {
@@ -102,8 +102,8 @@ export async function parseBillBuffer(
   mimeType: string,
   filename = 'bill',
 ): Promise<{ parsed: ParsedBillFields; confidence: Record<string, number> }> {
-  if (env.openaiApiKey) {
-    return parseBillWithOpenAI(buffer, mimeType, filename)
+  if (env.geminiApiKey || env.openaiApiKey) {
+    return parseBillWithVision(buffer, mimeType, filename)
   }
 
   return parseBillWithRegex(buffer, mimeType)

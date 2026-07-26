@@ -1,7 +1,8 @@
 import fs from 'fs'
 import path from 'path'
 import type { ParsedBillFields } from '@openspring/shared'
-import { extractBillPayload, mapExtractionToParsed } from '../services/bill-openai.service.js'
+import { env } from '../config/env.js'
+import { extractBillPayload, mapExtractionToParsed } from '../services/bill-vision.service.js'
 
 interface BillFixture {
   name: string
@@ -79,8 +80,13 @@ async function runFixture(fixture: BillFixture, attempt: number) {
 
 async function main() {
   const runs = Number(process.argv[2] ?? 1)
+  const provider = env.geminiApiKey
+    ? `Gemini (${env.geminiBillModel})`
+    : env.openaiApiKey
+      ? `OpenAI (${env.openaiBillModel})`
+      : 'none configured'
   console.log(`Bill parse eval — ${runs} run(s) per fixture`)
-  console.log(`Model: ${process.env.OPENAI_BILL_MODEL ?? 'gpt-4o-mini'}\n`)
+  console.log(`Provider: ${provider}\n`)
 
   let totalChecks = 0
   let passedChecks = 0

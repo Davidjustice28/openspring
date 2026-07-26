@@ -15,6 +15,7 @@
     "bill:eval": "tsx src/scripts/bill-parse-eval.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@neondatabase/serverless": "^0.10.4",
     "@openspring/shared": "*",
     "cors": "^2.8.5",
