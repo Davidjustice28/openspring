@@ -82,6 +82,10 @@ function buildMetadata(form: ContributionData) {
   return Object.keys(metadata).length > 0 ? metadata : undefined
 }
 
+function hasParsedBillFields(parsed: ParseBillResponse['parsed']): boolean {
+  return Object.values(parsed).some((value) => value != null && String(value).trim() !== '')
+}
+
 export function ContributionForm({ onContribute, defaultStateSlug, showExplorerLink = false }: ContributionFormProps) {
   const { data: statesData } = useStates()
   const invalidateDashboard = useInvalidateDashboard()
@@ -94,6 +98,7 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [parsing, setParsing] = useState(false)
+  const [parseFieldsFound, setParseFieldsFound] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState<FormFields>(emptyForm())
 
@@ -124,6 +129,7 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
     if (nextSource === 'manual') {
       setParseToken(null)
       setFileName('')
+      setParseFieldsFound(false)
     }
   }
 
@@ -162,14 +168,21 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
     setFileName(file.name)
     setInputSource('bill')
     setParsing(true)
+    setParseFieldsFound(false)
     setError('')
 
     try {
       const response = (await api.parseBill(file)) as ParseBillResponse
       applyParsedBill(response)
+      const found = hasParsedBillFields(response.parsed)
+      setParseFieldsFound(found)
+      if (!found) {
+        setError('We could not read bill fields automatically. Please enter the values below.')
+      }
     } catch (e) {
       setFileName('')
       setParseToken(null)
+      setParseFieldsFound(false)
       setError(e instanceof Error ? e.message : 'Failed to parse bill')
     } finally {
       setParsing(false)
@@ -180,6 +193,7 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
   const clearUploadedBill = () => {
     setFileName('')
     setParseToken(null)
+    setParseFieldsFound(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -278,7 +292,11 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[#1e293b]">{fileName}</p>
                         <p className="text-xs text-[#0284c7]">
-                          {parsing ? 'Reading bill…' : 'Values added below for your review'}
+                          {parsing
+                            ? 'Reading bill…'
+                            : parseFieldsFound
+                              ? 'Values added below for your review'
+                              : 'Enter bill values below'}
                         </p>
                       </div>
                     </div>
@@ -333,7 +351,7 @@ export function ContributionForm({ onContribute, defaultStateSlug, showExplorerL
 
             <fieldset className="space-y-4">
               <legend className="text-sm font-bold text-[#1e293b]">Contribution details</legend>
-              {fileName && !parsing && (
+              {fileName && !parsing && parseFieldsFound && (
                 <p className="-mt-2 flex items-center gap-1.5 text-xs text-[#059669]">
                   <CheckCircle2Icon className="h-3.5 w-3.5" />
                   Bill values are editable. Please confirm them before contributing.

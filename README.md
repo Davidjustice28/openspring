@@ -17,6 +17,7 @@ No-signup water data transparency platform. Explore public water, climate, censu
 - [Census API key](https://api.census.gov/data/key_signup.html) (recommended)
 - [USGS API key](https://api.waterdata.usgs.gov/signup/) (recommended for environmental snapshot cards)
 - [Resend API key](https://resend.com) (optional, for email signup)
+- [OpenAI API key](https://platform.openai.com) (recommended for bill upload parsing)
 
 ## Setup
 
@@ -45,6 +46,8 @@ npm run dev
 | `PORT` | No | Backend port (default 3001) |
 | `VITE_API_URL` | Local only | Frontend API base for Vite dev (default proxied `/api`). Omit in production. |
 | `FRONTEND_DIST` | No | Path to Vite build output (default `frontend/dist`) |
+| `OPENAI_API_KEY` | For bill upload | OpenAI key for bill field extraction (`gpt-4o-mini`) |
+| `OPENAI_BILL_MODEL` | No | Override bill parser model (default `gpt-4o-mini`) |
 | `TRUST_PROXY` | Production | Set to `1` behind Railway/Render |
 
 ## API routes

@@ -21,4 +21,6 @@ export const env = {
   nassApiKey: requireEnv('NASS_API_KEY', true),
   snapshotSecret: requireEnv('SNAPSHOT_SECRET', true),
   snapshotIngestOnStartup: process.env.SNAPSHOT_INGEST_ON_STARTUP === '1',
+  openaiApiKey: requireEnv('OPENAI_API_KEY', true),
+  openaiBillModel: process.env.OPENAI_BILL_MODEL ?? 'gpt-4o-mini',
 }

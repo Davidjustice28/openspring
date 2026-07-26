@@ -1,6 +1,7 @@
 import pdf from 'pdf-parse/lib/pdf-parse.js'
-import { STATE_BY_ABBR, STATE_BY_NAME, US_STATES } from '@openspring/shared'
-import type { ParsedBillFields } from '@openspring/shared'
+import { STATE_BY_ABBR, US_STATES, type ParsedBillFields } from '@openspring/shared'
+import { env } from '../config/env.js'
+import { parseBillWithOpenAI } from './bill-openai.service.js'
 
 function extractAmount(text: string, patterns: RegExp[]): string | undefined {
   for (const pattern of patterns) {
@@ -50,16 +51,16 @@ function extractCity(text: string): string | undefined {
   return undefined
 }
 
-export async function parseBillBuffer(buffer: Buffer, mimeType: string): Promise<{ parsed: ParsedBillFields; confidence: Record<string, number> }> {
+async function parseBillWithRegex(
+  buffer: Buffer,
+  mimeType: string,
+): Promise<{ parsed: ParsedBillFields; confidence: Record<string, number> }> {
   let text = ''
   if (mimeType === 'application/pdf' || buffer.slice(0, 4).toString() === '%PDF') {
     const result = await pdf(buffer)
     text = result.text
   } else {
-    return {
-      parsed: {},
-      confidence: {},
-    }
+    return { parsed: {}, confidence: {} }
   }
 
   const waterUsed = extractAmount(text, [
@@ -94,4 +95,16 @@ export async function parseBillBuffer(buffer: Buffer, mimeType: string): Promise
   if (city) confidence.city = 0.6
 
   return { parsed, confidence }
+}
+
+export async function parseBillBuffer(
+  buffer: Buffer,
+  mimeType: string,
+  filename = 'bill',
+): Promise<{ parsed: ParsedBillFields; confidence: Record<string, number> }> {
+  if (env.openaiApiKey) {
+    return parseBillWithOpenAI(buffer, mimeType, filename)
+  }
+
+  return parseBillWithRegex(buffer, mimeType)
 }

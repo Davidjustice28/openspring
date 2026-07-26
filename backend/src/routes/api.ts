@@ -140,7 +140,7 @@ apiRouter.get('/water/:slug', readLimiter, async (req, res, next) => {
 apiRouter.post('/bills/parse', parseHourLimiter, parseDayLimiter, upload.single('bill'), async (req, res, next) => {
   try {
     if (!req.file) throw new AppError(400, 'Bill file required')
-    const { parsed, confidence } = await parseBillBuffer(req.file.buffer, req.file.mimetype)
+    const { parsed, confidence } = await parseBillBuffer(req.file.buffer, req.file.mimetype, req.file.originalname)
     const parseToken = issueParseToken()
     res.json({ parsed, confidence, parseToken })
   } catch (e) { next(e) }
